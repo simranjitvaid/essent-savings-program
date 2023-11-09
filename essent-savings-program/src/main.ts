@@ -29,6 +29,19 @@ app.post('/accounts', (request, response) => {
   }
 });
 
+app.get('/accounts', (request, response) => {
+  response.status(201).json(accounts);
+});
+
+app.get('/accounts/:accountId', (request, response) => {
+  const tempAccount:Account = accounts.find((accounct) => accounct.id === request.params.accountId);
+  if (tempAccount) {
+    response.json(tempAccount);
+  } else {
+    response.status(404).send();
+  }
+});
+
 app.listen(port, host, () => {
   console.log(`[ ready ] http://${host}:${port}`);
 });
