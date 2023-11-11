@@ -1,8 +1,11 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { Account, accounts, Deposit } from './models/accounts-model';
+import { Account, accounts, Deposit, Transaction } from './models/accounts-model';
 import { getAccountById } from './lib/getAccountById';
 import { addDepositToAccount } from './lib/addDepositToAccount';
+import { calculateBalanceOnSimulatedDay } from './lib/calculateBalanceOnSimulatedDay';
+import { getLastDeposit } from './lib/getLastDeposit';
+import { getLastPurchase } from './lib/getLastPurchase';
 
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT !== undefined ? Number(process.env.PORT) : 3000;
@@ -24,17 +27,13 @@ app.post('/accounts', (request, response) => {
       const tempAccount: Account = {
         id: uuidv4(),
         name: request.body.name,
-        balance: [{
-          amount: 0,
-          day: 0,
-        }],
-        deposits: [],
+        transactions: [],
       };
       accounts.push(tempAccount); 
       const tempResponse = {
         'id': tempAccount.id,
         'name': tempAccount.name,
-        'balance': tempAccount.balance[0].amount,
+        'balance': 0,
       }; 
       response.json(tempResponse);
     }
@@ -44,22 +43,29 @@ app.post('/accounts', (request, response) => {
 });
 
 app.get('/accounts', (request, response) => {
-  //change to use get balance on simulated day function once made
-  const tempResponse = accounts.map((account) => { return { 'id': account.id, 'name': account.name, 'balance': account.balance[account.balance.length - 1].amount };});
-  response.status(201).json(tempResponse);
+  if (request.get('simulated-day') !== undefined) {
+    const tempResponse = accounts.map((account) => { return { 'id': account.id, 'name': account.name, 'balance': calculateBalanceOnSimulatedDay(account, Number(request.get('simulated-day'))) };});
+    response.status(201).json(tempResponse);
+  } else {
+    response.status(400).send();
+  }
 });
 
 app.get('/accounts/:accountId', (request, response) => {
-  const tempAccount:Account = getAccountById(request.params.accountId);
-  if (tempAccount) {
-    const tempResponse = {
-      'id': tempAccount.id,
-      'name': tempAccount.name,
-      'balance': tempAccount.balance[tempAccount.balance.length - 1].amount, //change to use get balance on simulated day function once made
-    }; 
-    response.json(tempResponse);
+  if (request.get('simulated-day') !== undefined) {
+    const tempAccount:Account = getAccountById(request.params.accountId);
+    if (tempAccount) {
+      const tempResponse = {
+        'id': tempAccount.id,
+        'name': tempAccount.name,
+        'balance': calculateBalanceOnSimulatedDay(tempAccount, Number(request.get('simulated-day'))),
+      }; 
+      response.json(tempResponse);
+    } else {
+      response.status(404).send();
+    }
   } else {
-    response.status(404).send();
+    response.status(400).send();
   }
 });
 
@@ -70,19 +76,21 @@ app.post('/accounts/:accountId/deposits', (request, response) => {
     } else {
       const tempAccount: Account = getAccountById(request.params.accountId);
       if (tempAccount) {
-        if (tempAccount.deposits.length > 0 && tempAccount.deposits[tempAccount.deposits.length - 1].depositDay > Number(request.get('simulated-day'))) {
+        const lastDeposit: Transaction = getLastDeposit(tempAccount);
+        if (lastDeposit !== undefined && lastDeposit.simulatedDay > Number(request.get('simulated-day'))) {
           response.status(400).send();
         } else {
           const tempDeposit: Deposit = {
             depositId: uuidv4(),
             amount: request.body.amount,
-            depositDay: Number(request.get('simulated-day')),
+            simulatedDay: Number(request.get('simulated-day')),
+            type: 'deposit',
           };
           const updatedAccount = addDepositToAccount(request.params.accountId, tempDeposit);
           const tempResponse = {
             'id': tempDeposit.depositId,
             'name': updatedAccount.name,
-            'balance': updatedAccount.balance[tempAccount.balance.length - 2].amount,    //change to use get balance on simulated day function once made
+            'balance': calculateBalanceOnSimulatedDay(tempAccount, Number(request.get('simulated-day'))),
           };
           response.status(201).json(tempResponse);
         }

@@ -1,19 +1,23 @@
-export interface Deposit {
+export type Deposit = {
   depositId: string;
   amount: number;
-  depositDay: number;
-}
-
-export type Balance = {
-  amount: number;
-  day: number
+  simulatedDay: number;
+  type: 'deposit';
 };
+
+export type Purchase = {
+  productId: string;
+  amount: number;
+  simulatedDay: number;
+  type: 'purchase';
+};
+
+export type Transaction = Deposit | Purchase;
 
 export interface Account {
   id: string;
   name: string;
-  balance: Balance [];
-  deposits?: Deposit [];
+  transactions?: Transaction [];
 }
 
 export const accounts: Account [] = [];
