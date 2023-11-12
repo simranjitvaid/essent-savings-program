@@ -168,7 +168,6 @@ app.post('/products', (request, response) => {
         'price': tempProduct.price,
         'stock': tempProduct.stock[0].stock,
       };
-      console.log(products);
       response.status(201).json(tempResponse);
     }
   } catch (error) {
@@ -176,6 +175,15 @@ app.post('/products', (request, response) => {
     response.status(500).send();
   }
 });  
+
+app.get('/products', (request, response) => {
+  if (request.get('simulated-day') !== undefined) {
+    const tempResponse = products.map((product) => { return { 'id': product.id, 'title': product.title, 'description': product.description, 'stock': getProductStockOnSimulatedDay(product, Number(request.get('simulated-day'))), 'price': product.price };});
+    response.status(200).json(tempResponse);
+  } else {
+    response.status(400).send();
+  }
+});
 
 app.listen(port, host, () => {
   console.log(`[ ready ] http://${host}:${port}`);
