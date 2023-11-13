@@ -14,7 +14,7 @@ import { addPurchaseToAccount } from './lib/addPurchaseToAccount';
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT !== undefined ? Number(process.env.PORT) : 3000;
 
-const app = express();
+export const app = express();
 
 app.use(express.json());
 
@@ -205,9 +205,11 @@ app.get('/products/:productId', (request, response) => {
   }
 });
 
-app.listen(port, host, () => {
-  console.log(`[ ready ] http://${host}:${port}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, host, () => {
+    console.log(`[ ready ] http://${host}:${port}`);
+  });
+}
 
 
 
