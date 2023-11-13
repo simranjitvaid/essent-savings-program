@@ -185,6 +185,26 @@ app.get('/products', (request, response) => {
   }
 });
 
+app.get('/products/:productId', (request, response) => {
+  if (request.get('simulated-day') !== undefined) {
+    const tempProduct: Product = getProductById(request.params.productId);
+    if (tempProduct) {
+      const tempResponse = {
+        'id': tempProduct.id,
+        'title': tempProduct.title,
+        'description': tempProduct.description,
+        'price': tempProduct.price,
+        'stock': getProductStockOnSimulatedDay(tempProduct, Number(request.get('simulated-day'))),
+      };
+      response.status(200).json(tempResponse);
+    } else {
+      response.status(404).send();
+    }
+  } else {
+    response.status(400).send();
+  }
+});
+
 app.listen(port, host, () => {
   console.log(`[ ready ] http://${host}:${port}`);
 });
